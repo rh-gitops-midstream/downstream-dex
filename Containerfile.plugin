@@ -21,8 +21,8 @@ COPY . .
 WORKDIR /app
 ENV GOFLAGS=""
 
-RUN source $CACHITO_ENV_FILE && GOOS=linux go generate -mod=mod /app/storage/ent/
-RUN source $CACHITO_ENV_FILE && GOOS=linux go build -mod=mod -o /tmp/dex -ldflags "-w -X main.version=${CI_DEX_UPSTREAM_TAG}" ./cmd/dex
+RUN GOOS=linux go generate -mod=mod /app/storage/ent/
+RUN GOOS=linux go build -mod=mod -o /tmp/dex -ldflags "-w -X main.version=${CI_DEX_UPSTREAM_TAG}" ./cmd/dex
 
 # --- start build stage #2
 FROM registry.access.redhat.com/ubi8/ubi-minimal
