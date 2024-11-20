@@ -17,50 +17,58 @@
 # --- start build stage #1
 FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_8_golang_1.22 as builder
 
-COPY . . 
-WORKDIR /app
-ENV GOFLAGS=""
+COPY . /app
+WORKDIR /app/dex
 
-RUN GOOS=linux go generate -mod=mod /app/storage/ent/
-RUN GOOS=linux go build -mod=mod -o /tmp/dex -ldflags "-w -X main.version=${CI_DEX_UPSTREAM_TAG}" ./cmd/dex
+RUN DEX_VERSION=$(git describe --tags --always --abbrev=7)
+ENV GOFLAGS=""
+RUN GOOS=linux go build -mod=mod -o /tmp/dex -ldflags "-w -X main.version=${DEX_VERSION}" ./cmd/dex
 
 # --- start build stage #2
 FROM registry.access.redhat.com/ubi8/ubi-minimal
 # Dex connectors, such as GitHub and Google logins require root certificates.
-# Proper installations should manage those certificates, but it's a bad user# experience when this doesn't work out of the box.
+# Proper installations should manage those certificates, but it's a bad user
+# experience when this doesn't work out of the box.
 #
 # OpenSSL is required so wget can query HTTPS endpoints for health checking.
 
-RUN microdnf update && microdnf install -y ca-certificates openssl && microdnf clean all
+RUN microdnf install -y ca-certificates openssl && microdnf clean all
 
 RUN mkdir -p /var/dex
 RUN chown -R 1001:1001 /var/dex
 
 RUN mkdir -p /etc/dex
-COPY --from=builder /app/config.docker.yaml /etc/dex/
+COPY --from=builder /app/dex/config.docker.yaml /etc/dex/
 RUN chown -R 1001:1001 /etc/dex
 
-COPY --from=builder /app/api/v2/go.mod /app/api/v2/go.sum /usr/local/src/api/v2/
+COPY --from=builder /app/dex/api/v2/go.mod /app/dex/api/v2/go.sum /usr/local/src/api/v2/
 
 COPY --from=builder /tmp/dex /usr/local/bin/dex
-COPY --from=builder /app/web /srv/dex/web
+COPY --from=builder /app/dex/web /srv/dex/web
 
 USER 1001:1001
 
+ARG CONTAINER_VERSION
+ARG DOWNSTREAM_SOURCE_URL
+ARG DOWNSTREAM_COMMIT_REF
+ARG UPSTREAM_SOURCE_URL
+ARG UPSTREAM_COMMIT_REF
+
 LABEL \
     name="openshift-gitops-1/dex-rhel8" \
-    version=${CI_CONTAINER_VERSION} \
+    version=${CONTAINER_VERSION} \
     License="Apache 2.0" \
     com.redhat.component="openshift-gitops-dex-container" \
     com.redhat.delivery.appregistry="false" \
-    release=${CI_CONTAINER_RELEASE} \
-    upstream-version=${CI_UPSTREAM_VERSION} \
-    upstream-vcs-ref="${CI_DEX_UPSTREAM_COMMIT}" \
+    downstream-vcs-source=${DOWNSTREAM_SOURCE_URL} \
+    downstream-vcs-ref=${DOWNSTREAM_COMMIT_REF} \
+    downstream-vcs-type="git" \
+    upstream-vcs-source=${UPSTREAM_SOURCE_URL} \
+    upstream-vcs-ref=${UPSTREAM_COMMIT_REF} \
     upstream-vcs-type="git" \
     summary="Red Hat OpenShift GitOps Dex" \
     io.openshift.expose-services="" \
     io.openshift.tags="openshift,gitops,dex,sso" \
     io.k8s.display-name="Red Hat OpenShift GitOps Dex" \
-    maintainer="Jaideep Rao <jrao@redhat.com>" \
+    maintainer="William Tam <wtam@redhat.com>" \
     description="Red Hat OpenShift GitOps Dex"
-
