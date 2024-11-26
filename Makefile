@@ -50,5 +50,5 @@ generate-rpms-lock:
 		--rm -t \
 		quay.io/svghadi/rpm-lockfile-prototype:latest \
 		--image registry.access.redhat.com/ubi8/ubi-minimal \
-		--arch amd64 \
+		--arch x86_64 --arch aarch64 --arch ppc64le --arch s390x \
 		rpms.in.yaml
