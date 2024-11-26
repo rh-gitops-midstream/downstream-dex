@@ -2,7 +2,7 @@
 lockfileVersion: 1
 lockfileVendor: redhat
 arches:
-- arch: x86_64
+- arch: amd64
   packages:
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi8/8/x86_64/baseos/os/Packages/o/openssl-1.1.1k-14.el8_6.x86_64.rpm
     repoid: ubi-8-baseos-rpms

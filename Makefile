@@ -1,5 +1,5 @@
 # Tool to build the container image. It can be either docker or podman
-DOCKER ?= docker
+CONTAINER_RUNTIME ?= docker
 
 # Override these var in release pipeline
 IMAGE ?= registry.redhat.io/openshift-gitops-1/dex-rhel8:dev
@@ -12,7 +12,7 @@ UPSTREAM_SOURCE_URL ?= $(shell cd dex && git config --get remote.origin.url)
 UPSTREAM_COMMIT_REF ?= $(shell cd dex && git rev-parse HEAD)
 
 build-plugin:
-	$(DOCKER) build -t $(IMAGE) \
+	$(CONTAINER_RUNTIME) build -t $(IMAGE) \
 		--build-arg DOWNSTREAM_SOURCE_URL="$(DOWNSTREAM_SOURCE_URL)" \
 		--build-arg DOWNSTREAM_COMMIT_REF="$(DOWNSTREAM_COMMIT_REF)" \
 		--build-arg UPSTREAM_SOURCE_URL="$(UPSTREAM_SOURCE_URL)" \
@@ -39,3 +39,16 @@ update-dex:
 	cd .. && \
 	git add dex || { echo "Error: Failed to stage updated submodule"; exit 1; } && \
 	echo "Successfully updated dex submodule to $(ref)"
+
+# Generate rpms.lock.yaml file
+# Use upstream container image for rpm-lockfile-prototype tool when available
+# Ref: https://github.com/konflux-ci/rpm-lockfile-prototype/pull/34
+generate-rpms-lock:
+	$(CONTAINER_RUNTIME) run \
+		-v $$PWD/deps/rpms:/tmp \
+		-w /tmp \
+		--rm -t \
+		quay.io/svghadi/rpm-lockfile-prototype:latest \
+		--image registry.access.redhat.com/ubi8/ubi-minimal \
+		--arch amd64 \
+		rpms.in.yaml

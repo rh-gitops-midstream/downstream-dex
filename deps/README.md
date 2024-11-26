@@ -1,6 +1,6 @@
 # Deps
 
-This directory holds configurations to prefetch dex dependencies for hermetic builds
+This directory holds configurations to prefetch dex dependencies for hermetic (disconnected) builds.
 
 ### Helpful Links 
 
