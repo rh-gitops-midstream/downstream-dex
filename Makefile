@@ -1,25 +1,10 @@
 # Tool to build the container image. It can be either docker or podman
 CONTAINER_RUNTIME ?= docker
 
-# Override these var in release pipeline
 IMAGE ?= registry.redhat.io/openshift-gitops-1/dex-rhel8:dev
 
-# Label values for container image
-CONTAINER_VERSION ?= $(shell git describe --tags --always --abbrev=7)
-DOWNSTREAM_SOURCE_URL ?= $(shell git config --get remote.origin.url)
-DOWNSTREAM_COMMIT_REF ?= $(shell git rev-parse HEAD)
-UPSTREAM_SOURCE_URL ?= $(shell cd dex && git config --get remote.origin.url)
-UPSTREAM_COMMIT_REF ?= $(shell cd dex && git rev-parse HEAD)
-
 build-plugin:
-	$(CONTAINER_RUNTIME) build -t $(IMAGE) \
-		--build-arg DOWNSTREAM_SOURCE_URL="$(DOWNSTREAM_SOURCE_URL)" \
-		--build-arg DOWNSTREAM_COMMIT_REF="$(DOWNSTREAM_COMMIT_REF)" \
-		--build-arg UPSTREAM_SOURCE_URL="$(UPSTREAM_SOURCE_URL)" \
-		--build-arg UPSTREAM_COMMIT_REF="$(UPSTREAM_COMMIT_REF)" \
-		--build-arg CI_CONTAINER_VERSION="$(CI_CONTAINER_VERSION)" \
-		--build-arg CI_CONTAINER_RELEASE="$(CI_CONTAINER_RELEASE)" \
-		-f ./Containerfile.plugin .
+	$(CONTAINER_RUNTIME) build -t $(IMAGE) -f ./Containerfile.plugin .
 
 # Update the dex submodule to a specific commit or tag
 update-dex:

@@ -20,9 +20,8 @@ FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_8_golang_1.22
 COPY . /app
 WORKDIR /app/dex
 
-RUN DEX_VERSION=$(git describe --tags --always --abbrev=7)
 ENV GOFLAGS=""
-RUN GOOS=linux go build -mod=mod -o /tmp/dex -ldflags "-w -X main.version=${DEX_VERSION}" ./cmd/dex
+RUN GOOS=linux go build -mod=mod -o /tmp/dex -ldflags "-w -X main.version=$(git describe --tags --always --abbrev=7)" ./cmd/dex
 
 # --- start build stage #2
 FROM registry.access.redhat.com/ubi8/ubi-minimal
@@ -48,25 +47,14 @@ COPY --from=builder /app/dex/web /srv/dex/web
 
 USER 1001:1001
 
-ARG CONTAINER_VERSION
-ARG DOWNSTREAM_SOURCE_URL
-ARG DOWNSTREAM_COMMIT_REF
-ARG UPSTREAM_SOURCE_URL
-ARG UPSTREAM_COMMIT_REF
-
 LABEL \
     name="openshift-gitops-1/dex-rhel8" \
-    version=${CONTAINER_VERSION} \
     License="Apache 2.0" \
     com.redhat.component="openshift-gitops-dex-container" \
     com.redhat.delivery.appregistry="false" \
-    downstream-vcs-source=${DOWNSTREAM_SOURCE_URL} \
-    downstream-vcs-ref=${DOWNSTREAM_COMMIT_REF} \
-    downstream-vcs-type="git" \
-    upstream-vcs-source=${UPSTREAM_SOURCE_URL} \
-    upstream-vcs-ref=${UPSTREAM_COMMIT_REF} \
-    upstream-vcs-type="git" \
     summary="Red Hat OpenShift GitOps Dex" \
+    downstream-vcs-type="git" \
+    upstream-vcs-type="git" \
     io.openshift.expose-services="" \
     io.openshift.tags="openshift,gitops,dex,sso" \
     io.k8s.display-name="Red Hat OpenShift GitOps Dex" \

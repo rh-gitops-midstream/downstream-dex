@@ -1,0 +1,48 @@
+---
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: generate-metadata
+spec:
+  params:
+    - name: SOURCE_ARTIFACT
+      type: string
+      description: The Trusted Artifact URI pointing to the artifact with the application source code.
+  results:
+    - name: labels
+      type: array
+      description: LABEL values for the container build
+  steps:
+    - name: use-trusted-artifact
+      # pin the image to a digest, Konflux will automatically send you updates
+      image: quay.io/redhat-appstudio/build-trusted-artifacts:latest@sha256:a83c92fc0a1e2c785937c6612dc8c8237818535543f00ecaf6b3b77a35f76259
+      args:
+        - use
+        - $(params.SOURCE_ARTIFACT)=/tekton/home/source
+
+    - name: generate-labels
+      # use any image you want, but prefer Red Hat images for security
+      image: registry.access.redhat.com/ubi9/ubi-minimal:9.5@sha256:d85040b6e3ed3628a89683f51a38c709185efc3fb552db2ad1b9180f2a6c38be
+      workingDir: /tekton/home/source
+      env:
+        - name: LABELS_RESULT
+          value: $(results.labels.path)
+      script: |
+        #!/bin/bash
+        set -euo pipefail
+
+        microdnf -y install git-core
+
+        # label values
+        CONTAINER_VERSION="$(git describe --tags --always --abbrev=7)"
+        DOWNSTREAM_SOURCE_URL="$(git config --get remote.origin.url)"
+        DOWNSTREAM_COMMIT_REF="$(git rev-parse HEAD)"
+        cd dex
+        UPSTREAM_SOURCE_URL="$(git config --get remote.origin.url)"
+        UPSTREAM_COMMIT_REF="$(git rev-parse HEAD)"
+
+        # result format: ["label1=value1", "label2=value2"]
+        labels='["container-version=%s", "downstream-source-url=%s", "downstream-source-ref=%s", "upstream-source-url=%s", "upstream-source-ref=%s"]'
+        printf "$labels" "$CONTAINER_VERSION" "$DOWNSTREAM_SOURCE_URL" "$DOWNSTREAM_COMMIT_REF" "$UPSTREAM_SOURCE_URL" "$UPSTREAM_COMMIT_REF" > "$LABELS_RESULT"
+
+        cat $LABELS_RESULT
