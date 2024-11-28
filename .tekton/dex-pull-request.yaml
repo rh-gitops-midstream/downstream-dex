@@ -31,6 +31,10 @@ spec:
     - linux/x86_64
   - name: dockerfile
     value: Containerfile.plugin
+  - name: hermetic
+    value: "true"
+  - name: prefetch-input
+    value: '[{"type": "gomod", "path": "./dex"}, {"type": "rpm", "path": "./deps/rpms"}]'
   pipelineSpec:
     description: |
       This pipeline is ideal for building multi-arch container images from a Containerfile while maintaining trust after pipeline customization.
@@ -174,6 +178,14 @@ spec:
       workspaces:
       - name: basic-auth
         workspace: git-auth
+    - name: generate-metadata
+      runAfter:
+      - clone-repository
+      taskRef:
+        name: generate-metadata
+      params:
+        - name: SOURCE_ARTIFACT
+          value: $(tasks.clone-repository.results.SOURCE_ARTIFACT)
     - name: prefetch-dependencies
       params:
       - name: input
@@ -184,8 +196,10 @@ spec:
         value: $(params.output-image).prefetch
       - name: ociArtifactExpiresAfter
         value: $(params.image-expires-after)
+      - name: dev-package-managers
+        value: "true"
       runAfter:
-      - clone-repository
+      - generate-metadata
       taskRef:
         params:
         - name: name
@@ -232,6 +246,9 @@ spec:
         value: $(tasks.prefetch-dependencies.results.CACHI2_ARTIFACT)
       - name: IMAGE_APPEND_PLATFORM
         value: "true"
+      - name: LABELS
+        value:
+        - $(tasks.generate-metadata.results.labels[*])
       runAfter:
       - prefetch-dependencies
       taskRef:
