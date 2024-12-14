@@ -15,7 +15,7 @@ spec:
   steps:
     - name: use-trusted-artifact
       # pin the image to a digest, Konflux will automatically send you updates
-      image: quay.io/redhat-appstudio/build-trusted-artifacts:latest@sha256:a83c92fc0a1e2c785937c6612dc8c8237818535543f00ecaf6b3b77a35f76259
+      image: quay.io/redhat-appstudio/build-trusted-artifacts:latest@sha256:b31dc501d5068e30621e51681a2921d4e43f5a030ab78c8991f83a5e774534a3
       args:
         - use
         - $(params.SOURCE_ARTIFACT)=/tekton/home/source
